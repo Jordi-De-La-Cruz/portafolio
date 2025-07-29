@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { apiClient, type DashboardStatsResponse, type DashboardStats } from '@/lib/api-client'
+import { apiClient, type DashboardStats } from '@/lib/api-client'
 import { BarChart3, TrendingUp, Users, Briefcase, Star, Activity } from 'lucide-react'
 import type { Project } from '@prisma/client'
 
@@ -10,151 +10,108 @@ interface DashboardStatsProps {
 }
 
 export default function DashboardStats({ className = '' }: DashboardStatsProps) {
+    // Estados del componente
     const [stats, setStats] = useState<DashboardStats | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [hasToken, setHasToken] = useState<boolean>(false)
 
-    // Verificar si hay token disponible
+    // Efecto para verificar token de autenticación
     useEffect(() => {
         const checkToken = () => {
             if (typeof window !== 'undefined') {
                 const token = localStorage.getItem('auth_token')
                 setHasToken(!!token)
-                console.log('🔍 Token check:', token ? 'Existe' : 'No existe')
             }
         }
 
         checkToken()
-
-        // Escuchar cambios en localStorage (por ejemplo, cuando se hace login/logout)
-        const handleStorageChange = () => {
-            checkToken()
-        }
-
-        window.addEventListener('storage', handleStorageChange)
-        return () => window.removeEventListener('storage', handleStorageChange)
+        window.addEventListener('storage', checkToken)
+        return () => window.removeEventListener('storage', checkToken)
     }, [])
 
+    // Función para obtener estadísticas
     const fetchStats = useCallback(async () => {
-        // No intentar cargar stats si no hay token
-        if (!hasToken) {
-            console.log('❌ No hay token, no se pueden cargar estadísticas')
-            setError('No hay sesión activa')
-            setIsLoading(false)
-            return
-        }
+        if (!hasToken) return
 
         try {
             setIsLoading(true)
-            setError(null)
-            console.log('📊 Cargando estadísticas del dashboard...')
-
-            const response: DashboardStatsResponse = await apiClient.getDashboardStats()
+            const response = await apiClient.getDashboardStats()
             setStats(response.data)
-            console.log('✅ Estadísticas cargadas exitosamente')
-
-        } catch (error: unknown) {
-            console.error('❌ Error fetching stats:', error)
-            const errorMessage = error instanceof Error ? error.message : 'Error al cargar estadísticas'
-            setError(errorMessage)
-
-            // Si es error de autenticación, marcar que no hay token
-            if (errorMessage.includes('Token inválido') || errorMessage.includes('401')) {
-                setHasToken(false)
-            }
+        } catch (error) {
+            setError(error instanceof Error ? error.message : 'Error desconocido')
         } finally {
             setIsLoading(false)
         }
     }, [hasToken])
 
-    // Cargar datos cuando hay token disponible
+    // Efecto para cargar datos cuando hay token
     useEffect(() => {
-        if (hasToken) {
-            fetchStats()
-        } else {
-            setIsLoading(false)
-            setStats(null)
-            setError('No hay sesión activa')
-        }
+        if (hasToken) fetchStats()
     }, [hasToken, fetchStats])
 
-    // Mostrar estado de carga
-    if (isLoading) {
-        return (
-            <div className={`bg-white rounded-lg shadow p-6 ${className}`}>
-                <div className="animate-pulse">
-                    <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {[...Array(4)].map((_, i) => (
-                            <div key={i} className="h-16 bg-gray-200 rounded"></div>
-                        ))}
-                    </div>
+    // Estado de carga
+    if (isLoading) return (
+        <div className={`bg-white rounded-lg shadow p-6 ${className}`}>
+            <div className="animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {[...Array(4)].map((_, i) => (
+                        <div key={i} className="h-16 bg-gray-200 rounded"></div>
+                    ))}
                 </div>
             </div>
-        )
-    }
+        </div>
+    )
 
-    // Mostrar error de autenticación
-    if (!hasToken) {
-        return (
-            <div className={`bg-white rounded-lg shadow p-6 ${className}`}>
-                <div className="text-center py-8">
-                    <div className="text-gray-400 mb-4">
-                        <Users className="w-12 h-12 mx-auto" />
-                    </div>
-                    <p className="text-gray-600 mb-4">Necesitas iniciar sesión para ver las estadísticas</p>
-                    <button
-                        onClick={() => window.location.href = '/admin/login'}
-                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-                    >
-                        Ir a Login
-                    </button>
-                </div>
+    // Sin autenticación
+    if (!hasToken) return (
+        <div className={`bg-white rounded-lg shadow p-6 ${className}`}>
+            <div className="text-center py-8">
+                <Users className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+                <button
+                    onClick={() => window.location.href = '/admin/login'}
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                    Iniciar sesión
+                </button>
             </div>
-        )
-    }
+        </div>
+    )
 
-    // Mostrar error general
-    if (error && hasToken) {
-        return (
-            <div className={`bg-white rounded-lg shadow p-6 ${className}`}>
-                <div className="text-center py-8">
-                    <div className="text-red-400 mb-4">
-                        <Activity className="w-12 h-12 mx-auto" />
-                    </div>
-                    <p className="text-red-600 mb-4">{error}</p>
-                    <button
-                        onClick={fetchStats}
-                        className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                    >
-                        Reintentar
-                    </button>
-                </div>
+    // Manejo de errores
+    if (error) return (
+        <div className={`bg-white rounded-lg shadow p-6 ${className}`}>
+            <div className="text-center py-8">
+                <p className="text-red-600 mb-4">{error}</p>
+                <button
+                    onClick={fetchStats}
+                    className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                >
+                    Reintentar
+                </button>
             </div>
-        )
-    }
+        </div>
+    )
 
-    // Mostrar mensaje si no hay datos
-    if (!stats) {
-        return (
-            <div className={`bg-white rounded-lg shadow p-6 ${className}`}>
-                <p className="text-gray-500">No se pudieron cargar las estadísticas</p>
-            </div>
-        )
-    }
+    // Sin datos
+    if (!stats) return (
+        <div className={`bg-white rounded-lg shadow p-6 ${className}`}>
+            <p className="text-gray-500">No hay datos disponibles</p>
+        </div>
+    )
 
     const { overview, currentJob, recentActivity, skillsDistribution } = stats
 
+    // Renderizado principal
     return (
         <div className={`space-y-6 ${className}`}>
-            {/* Estadísticas generales */}
+            {/* Sección de resumen */}
             <div className="bg-white rounded-lg shadow p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                     <BarChart3 className="w-5 h-5 mr-2 text-blue-600" />
                     Resumen General
                 </h3>
-
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
                         <div className="text-2xl font-bold text-blue-600">{overview.totalProjects}</div>
@@ -190,8 +147,8 @@ export default function DashboardStats({ className = '' }: DashboardStatsProps) 
                 </div>
             </div>
 
+            {/* Sección de trabajo actual y proyectos recientes */}
             <div className="grid md:grid-cols-2 gap-6">
-                {/* Trabajo actual */}
                 {currentJob && (
                     <div className="bg-white rounded-lg shadow p-6">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
@@ -251,8 +208,8 @@ export default function DashboardStats({ className = '' }: DashboardStatsProps) 
                 </div>
             </div>
 
-            {/* Distribución de habilidades */}
-            {skillsDistribution.length > 0 && (
+            {/* Sección de habilidades */}
+            {stats.skillsDistribution.length > 0 && (
                 <div className="bg-white rounded-lg shadow p-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                         <TrendingUp className="w-5 h-5 mr-2 text-purple-600" />

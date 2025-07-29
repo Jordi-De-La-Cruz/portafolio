@@ -21,9 +21,11 @@ export default function ImageSelector({
     required = false,
     className = ''
 }: ImageSelectorProps) {
+    // Estados para controlar la pestaña activa y la galería
     const [activeTab, setActiveTab] = useState<'upload' | 'gallery'>('upload')
     const [isGalleryOpen, setIsGalleryOpen] = useState(false)
 
+    // Configuración de las pestañas disponibles
     const tabs: Array<{ id: 'upload' | 'gallery', label: string, icon: LucideIcon }> = [
         { id: 'upload', label: 'Subir Nueva', icon: Upload },
         { id: 'gallery', label: 'Galería', icon: Grid }
@@ -31,12 +33,13 @@ export default function ImageSelector({
 
     return (
         <div className={className}>
+            {/* Etiqueta del selector */}
             <label className="block text-sm font-medium text-gray-700 mb-2">
                 {label}
                 {required && <span className="text-red-500 ml-1">*</span>}
             </label>
 
-            {/* Tabs */}
+            {/* Navegación por pestañas */}
             <div className="flex space-x-1 mb-4 p-1 bg-gray-100 rounded-lg">
                 {tabs.map((tab) => {
                     const Icon = tab.icon
@@ -62,7 +65,7 @@ export default function ImageSelector({
                 })}
             </div>
 
-            {/* Content */}
+            {/* Contenido según pestaña activa */}
             <div className="space-y-4">
                 {activeTab === 'upload' && (
                     <ImageUpload
@@ -72,7 +75,7 @@ export default function ImageSelector({
                 )}
             </div>
 
-            {/* Current image preview */}
+            {/* Vista previa de la imagen seleccionada */}
             {value && (
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                     <p className="text-sm font-medium text-gray-700 mb-2">Imagen actual:</p>
@@ -80,6 +83,8 @@ export default function ImageSelector({
                         <Image
                             src={value}
                             alt="Imagen seleccionada"
+                            width={64}
+                            height={64}
                             className="w-16 h-16 object-cover rounded-lg border"
                         />
                         <div className="flex-1">
@@ -95,14 +100,14 @@ export default function ImageSelector({
                 </div>
             )}
 
-            {/* Gallery Modal */}
+            {/* Modal de galería de imágenes */}
             <ImageGallery
                 isOpen={isGalleryOpen}
                 onClose={() => setIsGalleryOpen(false)}
                 onImageSelect={(imageUrl) => {
                     onChange(imageUrl)
                     setIsGalleryOpen(false)
-                    setActiveTab('upload') // Volver a la pestaña de upload
+                    setActiveTab('upload')
                 }}
                 selectedImage={value}
             />

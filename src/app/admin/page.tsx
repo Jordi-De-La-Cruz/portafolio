@@ -1,10 +1,10 @@
 import { getAllAdminData } from '@/lib/db'
-import AdminClient from '@/components/AdminClient'
+import AdminClient from '@/components/admin/AdminClient'
 import ProtectedRoute from '@/components/ProtectedRoute'
 
 export default async function AdminPage() {
   const { personalInfo, projects, skills, experiences } = await getAllAdminData()
-  
+
   return (
     <ProtectedRoute>
       <AdminClient

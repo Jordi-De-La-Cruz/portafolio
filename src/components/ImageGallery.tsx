@@ -19,11 +19,13 @@ interface ImageFile {
 }
 
 export default function ImageGallery({ onImageSelect, selectedImage, isOpen, onClose }: ImageGalleryProps) {
+    // Estados del componente
     const [images, setImages] = useState<ImageFile[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
-    const [currentPage] = useState(1) // Removed setCurrentPage since it wasn't used
+    const [currentPage] = useState(1)
 
+    // Obtener imágenes de la API
     const fetchImages = useCallback(async () => {
         setIsLoading(true)
         try {
@@ -33,27 +35,31 @@ export default function ImageGallery({ onImageSelect, selectedImage, isOpen, onC
                     'Authorization': `Bearer ${token}`
                 }
             })
+
             if (response.ok) {
                 const result = await response.json()
                 setImages(result.data)
             }
         } catch (error) {
-            console.error('Error fetching images:', error)
+            console.error('Error al cargar imágenes:', error)
         } finally {
             setIsLoading(false)
         }
-    }, [currentPage]) // Added currentPage as dependency
+    }, [currentPage])
 
+    // Cargar imágenes cuando se abre el modal
     useEffect(() => {
         if (isOpen) {
             fetchImages()
         }
-    }, [isOpen, fetchImages]) // Added fetchImages as dependency
+    }, [isOpen, fetchImages])
 
+    // Filtrar imágenes según término de búsqueda
     const filteredImages = images.filter(image =>
         image.fileName.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
+    // Formatear tamaño de archivo
     const formatFileSize = (bytes: number) => {
         if (bytes === 0) return '0 Bytes'
         const k = 1024
@@ -62,6 +68,7 @@ export default function ImageGallery({ onImageSelect, selectedImage, isOpen, onC
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
     }
 
+    // Formatear fecha
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('es-ES', {
             day: '2-digit',
@@ -86,7 +93,7 @@ export default function ImageGallery({ onImageSelect, selectedImage, isOpen, onC
                     </button>
                 </div>
 
-                {/* Search */}
+                {/* Barra de búsqueda */}
                 <div className="p-6 border-b">
                     <div className="relative">
                         <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -100,7 +107,7 @@ export default function ImageGallery({ onImageSelect, selectedImage, isOpen, onC
                     </div>
                 </div>
 
-                {/* Content */}
+                {/* Contenido principal */}
                 <div className="flex-1 overflow-y-auto p-6">
                     {isLoading ? (
                         <div className="flex items-center justify-center h-48">
@@ -109,54 +116,18 @@ export default function ImageGallery({ onImageSelect, selectedImage, isOpen, onC
                     ) : filteredImages.length > 0 ? (
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             {filteredImages.map((image) => (
-                                <div
+                                <ImageCard
                                     key={image.fileName}
-                                    className={`relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${selectedImage === image.url
-                                        ? 'border-blue-500 ring-2 ring-blue-200'
-                                        : 'border-gray-200 hover:border-gray-300'
-                                        }`}
-                                    onClick={() => onImageSelect(image.url)}
-                                >
-                                    <div className="aspect-square relative">
-                                        <Image
-                                            src={image.url}
-                                            alt={image.fileName}
-                                            fill
-                                            className="object-cover"
-                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                        />
-
-                                        {/* Overlay */}
-                                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all" />
-
-                                        {/* Selected indicator */}
-                                        {selectedImage === image.url && (
-                                            <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1">
-                                                <Check className="w-4 h-4" />
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Image info */}
-                                    <div className="p-3 bg-white">
-                                        <p className="text-xs font-medium text-gray-900 truncate">
-                                            {image.fileName}
-                                        </p>
-                                        <div className="flex justify-between text-xs text-gray-500 mt-1">
-                                            <span>{formatFileSize(image.size)}</span>
-                                            <span>{formatDate(image.uploadedAt)}</span>
-                                        </div>
-                                    </div>
-                                </div>
+                                    image={image}
+                                    isSelected={selectedImage === image.url}
+                                    onSelect={() => onImageSelect(image.url)}
+                                    formatFileSize={formatFileSize}
+                                    formatDate={formatDate}
+                                />
                             ))}
                         </div>
                     ) : (
-                        <div className="text-center py-12">
-                            <ImageIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                            <p className="text-gray-500">
-                                {searchTerm ? 'No se encontraron imágenes' : 'No hay imágenes subidas'}
-                            </p>
-                        </div>
+                        <EmptyState searchTerm={searchTerm} />
                     )}
                 </div>
 
@@ -187,6 +158,62 @@ export default function ImageGallery({ onImageSelect, selectedImage, isOpen, onC
                     </div>
                 </div>
             </div>
+        </div>
+    )
+}
+
+// Componente para tarjeta de imagen
+function ImageCard({ image, isSelected, onSelect, formatFileSize, formatDate }: {
+    image: ImageFile
+    isSelected: boolean
+    onSelect: () => void
+    formatFileSize: (bytes: number) => string
+    formatDate: (dateString: string) => string
+}) {
+    return (
+        <div
+            className={`relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${isSelected
+                ? 'border-blue-500 ring-2 ring-blue-200'
+                : 'border-gray-200 hover:border-gray-300'
+                }`}
+            onClick={onSelect}
+        >
+            <div className="aspect-square relative">
+                <Image
+                    src={image.url}
+                    alt={image.fileName}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                />
+                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all" />
+                {isSelected && (
+                    <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full p-1">
+                        <Check className="w-4 h-4" />
+                    </div>
+                )}
+            </div>
+            <div className="p-3 bg-white">
+                <p className="text-xs font-medium text-gray-900 truncate">
+                    {image.fileName}
+                </p>
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>{formatFileSize(image.size)}</span>
+                    <span>{formatDate(image.uploadedAt)}</span>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+// Componente para estado vacío
+function EmptyState({ searchTerm }: { searchTerm: string }) {
+    return (
+        <div className="text-center py-12">
+            <ImageIcon className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500">
+                {searchTerm ? 'No se encontraron imágenes' : 'No hay imágenes subidas'}
+            </p>
         </div>
     )
 }

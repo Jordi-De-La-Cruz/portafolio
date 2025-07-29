@@ -3,22 +3,21 @@ import { prisma } from '@/lib/db'
 import { projectSchema, handleValidationError } from '@/lib/validations'
 import { Prisma } from '@prisma/client'
 
-// GET - Obtener todos los proyectos con paginación y filtros
+// GET - Paginación y filtros básicos
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url)
 
-        // Parámetros de query
         const page = parseInt(searchParams.get('page') || '1')
         const limit = parseInt(searchParams.get('limit') || '10')
         const featured = searchParams.get('featured')
         const search = searchParams.get('search')
 
-        // Calcular offset para paginación
         const offset = (page - 1) * limit
 
         const where: Prisma.ProjectWhereInput = {}
 
+        // Filtros opcionales
         if (featured !== null) {
             where.featured = featured === 'true'
         }
@@ -30,7 +29,7 @@ export async function GET(request: NextRequest) {
             ]
         }
 
-        // Ejecutar consultas en paralelo
+        // Consulta paralela: proyectos + conteo total
         const [projects, totalCount] = await Promise.all([
             prisma.project.findMany({
                 where,
@@ -41,10 +40,7 @@ export async function GET(request: NextRequest) {
             prisma.project.count({ where })
         ])
 
-        // Calcular metadatos de paginación
         const totalPages = Math.ceil(totalCount / limit)
-        const hasNextPage = page < totalPages
-        const hasPrevPage = page > 1
 
         return NextResponse.json({
             data: projects,
@@ -53,8 +49,8 @@ export async function GET(request: NextRequest) {
                 limit,
                 totalCount,
                 totalPages,
-                hasNextPage,
-                hasPrevPage
+                hasNextPage: page < totalPages,
+                hasPrevPage: page > 1
             }
         })
 
@@ -67,14 +63,13 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// POST - Crear nuevo proyecto con validación
+// POST - Validación y creación
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
 
-        // Validar datos de entrada
+        // Validación con Zod
         const validationResult = projectSchema.safeParse(body)
-
         if (!validationResult.success) {
             return NextResponse.json(
                 handleValidationError(validationResult.error),
@@ -82,23 +77,10 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        const {
-            title,
-            description,
-            imageUrl,
-            demoUrl,
-            githubUrl,
-            technologies,
-            featured,
-            startDate,
-            endDate
-        } = validationResult.data
-
-        // Verificar que no exista un proyecto con el mismo título
+        // Verificar título único
         const existingProject = await prisma.project.findFirst({
-            where: { title }
+            where: { title: validationResult.data.title }
         })
-
         if (existingProject) {
             return NextResponse.json(
                 { error: 'Ya existe un proyecto con este título' },
@@ -106,26 +88,17 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // Crear el proyecto
+        // Crear proyecto
         const project = await prisma.project.create({
             data: {
-                title,
-                description,
-                imageUrl: imageUrl || null,
-                demoUrl: demoUrl || null,
-                githubUrl: githubUrl || null,
-                technologies,
-                featured: featured || false,
-                startDate: new Date(startDate),
-                endDate: endDate ? new Date(endDate) : null
+                ...validationResult.data,
+                startDate: new Date(validationResult.data.startDate),
+                endDate: validationResult.data.endDate ? new Date(validationResult.data.endDate) : null
             }
         })
 
         return NextResponse.json(
-            {
-                message: 'Proyecto creado exitosamente',
-                data: project
-            },
+            { message: 'Proyecto creado exitosamente', data: project },
             { status: 201 }
         )
 

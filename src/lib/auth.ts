@@ -1,8 +1,10 @@
 import { NextRequest } from 'next/server'
 import { SignJWT, jwtVerify } from 'jose'
 
+// Configuration
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this'
 
+// Interface for JWT payload
 export interface AuthPayload {
     userId: string
     email: string
@@ -10,14 +12,14 @@ export interface AuthPayload {
     exp?: number
 }
 
-// Convertir secret a Uint8Array para jose
+// Converts secret string to Uint8Array for jose library
 function getJwtSecret(): Uint8Array {
     return new TextEncoder().encode(JWT_SECRET)
 }
 
-// Función para generar JWT token con jose
+// Generates a JWT token with user payload
 export async function generateToken(payload: Omit<AuthPayload, 'iat' | 'exp'>): Promise<string> {
-    console.log('🔑 Generando token para:', payload.email)
+    console.log('🔑 Generating token for:', payload.email)
 
     try {
         const secret = getJwtSecret()
@@ -25,86 +27,74 @@ export async function generateToken(payload: Omit<AuthPayload, 'iat' | 'exp'>): 
         const token = await new SignJWT(payload)
             .setProtectedHeader({ alg: 'HS256' })
             .setIssuedAt()
-            .setExpirationTime('7d') // Token válido por 7 días
+            .setExpirationTime('7d')
             .sign(secret)
 
-        console.log('✅ Token generado:', token.substring(0, 20) + '...')
+        console.log('✅ Token generated:', token.substring(0, 20) + '...')
         return token
     } catch (error) {
-        console.error('❌ Error generando token:', error)
-        throw new Error('Error al generar token de autenticación')
+        console.error('❌ Error generating token:', error)
+        throw new Error('Failed to generate authentication token')
     }
 }
 
-// Función para verificar JWT token con jose
+// Verifies a JWT token and returns its payload if valid
 export async function verifyToken(token: string): Promise<AuthPayload | null> {
     try {
-        console.log('🔍 auth.verifyToken: Verificando token...')
-        console.log('🎫 Token recibido:', token.substring(0, 20) + '...')
-        console.log('🔑 JWT_SECRET configurado:', JWT_SECRET ? 'Sí' : 'No')
-        console.log('🔑 JWT_SECRET valor:', JWT_SECRET.substring(0, 10) + '...')
+        console.log('🔍 Verifying token...')
+        console.log('🎫 Token received:', token.substring(0, 20) + '...')
 
         const secret = getJwtSecret()
         const { payload } = await jwtVerify(token, secret) as { payload: AuthPayload }
 
-        console.log('✅ Token válido, payload:', payload)
+        console.log('✅ Valid token, payload:', payload)
         return payload
     } catch (error) {
-        console.error('❌ Error verificando token:', error)
+        console.error('❌ Error verifying token:', error)
         return null
     }
 }
 
-// Middleware para verificar autenticación en rutas API
+// Middleware to verify authentication from request headers
 export async function verifyAuth(request: NextRequest): Promise<AuthPayload | null> {
     try {
-        console.log('🛡️ verifyAuth: Verificando autenticación...')
+        console.log('🛡️ Verifying authentication...')
         const authHeader = request.headers.get('Authorization')
-        console.log('🔑 Authorization header:', authHeader ? 'Presente' : 'Ausente')
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            console.log('❌ Header de autorización inválido')
+            console.log('❌ Invalid authorization header')
             return null
         }
 
-        const token = authHeader.substring(7) // Remover "Bearer "
-        console.log('🎫 Token extraído:', token.substring(0, 20) + '...')
-
-        const result = await verifyToken(token)
-        console.log('🔍 Resultado de verificación:', result ? 'Válido' : 'Inválido')
-
-        return result
+        const token = authHeader.substring(7)
+        return await verifyToken(token)
     } catch (error) {
         console.error('❌ Error verifying auth:', error)
         return null
     }
 }
 
-// Define el tipo para el contexto
+// Context type for authenticated routes
 interface AuthContext {
-    params: { [key: string]: string | string[] };
-    user?: AuthPayload;
+    params: { [key: string]: string | string[] }
+    user?: AuthPayload
 }
 
-// HOC para proteger rutas API
+// Higher-order function to protect API routes with authentication
 export function withAuth(handler: (request: NextRequest, context: AuthContext) => Promise<Response>) {
     return async (request: NextRequest, context: AuthContext) => {
-        console.log('🔒 withAuth: Protegiendo ruta...')
+        console.log('🔒 Protecting route with auth...')
         const authPayload = await verifyAuth(request)
 
         if (!authPayload) {
-            console.log('❌ withAuth: Usuario no autorizado')
+            console.log('❌ Unauthorized access attempt')
             return new Response(
-                JSON.stringify({ error: 'No autorizado' }),
-                {
-                    status: 401,
-                    headers: { 'Content-Type': 'application/json' }
-                }
+                JSON.stringify({ error: 'Unauthorized' }),
+                { status: 401, headers: { 'Content-Type': 'application/json' } }
             )
         }
 
-        console.log('✅ withAuth: Usuario autorizado:', authPayload.email)
-        // Añadir información del usuario al contexto
+        console.log('✅ Authorized user:', authPayload.email)
         context.user = authPayload
 
         return handler(request, context)

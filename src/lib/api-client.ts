@@ -7,6 +7,7 @@ import type {
   PersonalInfo
 } from '@prisma/client'
 
+// Interfaces para estructuras de datos comunes
 export interface PaginationMeta {
   page: number
   limit: number
@@ -45,7 +46,7 @@ export interface DashboardStats {
   skillsDistribution: SkillDistribution[]
 }
 
-// Tipos de respuesta de la API
+// Interfaces para respuestas de la API
 export interface AuthResponse {
   data: {
     user: User
@@ -103,7 +104,7 @@ export interface UserResponse {
   message: string
 }
 
-// Configuración base del cliente API
+// Clase principal del cliente API
 class ApiClient {
   private baseUrl: string
   private token: string | null = null
@@ -112,14 +113,14 @@ class ApiClient {
   constructor() {
     this.baseUrl = process.env.NEXT_PUBLIC_API_URL || ''
 
-    // Intentar obtener token del localStorage en el cliente
+    // Inicialización del token desde localStorage
     if (typeof window !== 'undefined') {
       this.token = localStorage.getItem('auth_token')
       console.log('🔧 ApiClient inicializado con token:', this.token ? 'Existe' : 'No existe')
     }
   }
 
-  // Método para establecer el token de autenticación
+  // Métodos para manejo de autenticación
   setToken(token: string) {
     console.log('🎫 ApiClient.setToken llamado con:', token ? 'Token válido' : 'Token vacío')
     this.token = token
@@ -129,20 +130,16 @@ class ApiClient {
     }
   }
 
-  // Método para limpiar el token
   clearToken() {
     console.log('🧹 ApiClient.clearToken llamado')
     this.token = null
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_token')
       console.log('🗑️ Token removido de localStorage')
-
-      // Disparar evento personalizado para que otros componentes puedan reaccionar
       window.dispatchEvent(new CustomEvent('auth-token-cleared'))
     }
   }
 
-  // Verificar si hay token
   hasValidToken(): boolean {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('auth_token')
@@ -151,7 +148,7 @@ class ApiClient {
     return !!this.token
   }
 
-  // Método base para hacer peticiones HTTP
+  // Método base para todas las peticiones HTTP
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -197,8 +194,6 @@ class ApiClient {
         if (response.status === 401) {
           console.log('🔒 Error 401: Token inválido, limpiando...')
           this.clearToken()
-
-          // No reintentar automáticamente para evitar bucles
           throw new Error('Token inválido o expirado')
         }
 
@@ -214,8 +209,7 @@ class ApiClient {
     }
   }
 
-  // ===== MÉTODOS DE AUTENTICACIÓN =====
-
+  // Métodos para autenticación
   async login(email: string, password: string): Promise<AuthResponse> {
     console.log('🔐 ApiClient.login:', email)
     const response = await this.request<AuthResponse>('/auth/login', {
@@ -256,8 +250,7 @@ class ApiClient {
     }
   }
 
-  // ===== MÉTODOS PARA PROYECTOS =====
-
+  // Métodos para proyectos
   async getProjects(params?: {
     page?: number
     limit?: number
@@ -299,8 +292,7 @@ class ApiClient {
     })
   }
 
-  // ===== MÉTODOS PARA HABILIDADES =====
-
+  // Métodos para habilidades
   async getSkills(params?: {
     page?: number
     limit?: number
@@ -338,8 +330,7 @@ class ApiClient {
     })
   }
 
-  // ===== MÉTODOS PARA EXPERIENCIAS =====
-
+  // Métodos para experiencias
   async getExperiences(params?: {
     page?: number
     limit?: number
@@ -377,8 +368,7 @@ class ApiClient {
     })
   }
 
-  // ===== MÉTODOS PARA INFORMACIÓN PERSONAL =====
-
+  // Métodos para información personal
   async updatePersonalInfo(data: PersonalInfoInput): Promise<PersonalInfoResponse> {
     return this.request<PersonalInfoResponse>('/admin/personal', {
       method: 'PUT',
@@ -386,8 +376,7 @@ class ApiClient {
     })
   }
 
-  // ===== MÉTODOS PARA ESTADÍSTICAS =====
-
+  // Métodos para estadísticas
   async getDashboardStats(): Promise<DashboardStatsResponse> {
     return this.request<DashboardStatsResponse>('/admin/stats')
   }
@@ -396,7 +385,7 @@ class ApiClient {
 // Instancia singleton del cliente API
 export const apiClient = new ApiClient()
 
-// Hook personalizado para usar en componentes React
+// Hook para usar el cliente en componentes React
 export function useApiClient() {
   return apiClient
 }

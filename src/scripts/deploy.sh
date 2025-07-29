@@ -1,87 +1,88 @@
 #!/bin/bash
 
-# Script de despliegue para QA/Staging
+# Script de despliegue para QA o Producción
 # Uso: ./scripts/deploy.sh [staging|production]
 
 set -e
 
+# Config inicial
 ENV=${1:-staging}
 BRANCH=$(git branch --show-current)
 
-echo "🚀 Iniciando despliegue para entorno: $ENV"
+echo "🚀 Desplegando entorno: $ENV"
 echo "📋 Rama actual: $BRANCH"
 
-# Validar que estamos en la rama correcta
+# Validar rama según entorno
 if [ "$ENV" = "staging" ] && [ "$BRANCH" != "develop" ]; then
-    echo "⚠️  Para staging debes estar en la rama 'develop'"
-    echo "🔄 Cambiando a rama develop..."
+    echo "⚠️  Debes estar en 'develop'"
+    echo "🔄 Cambiando a 'develop'..."
     git checkout develop
     git pull origin develop
 fi
 
 if [ "$ENV" = "production" ] && [ "$BRANCH" != "main" ]; then
-    echo "⚠️  Para production debes estar en la rama 'main'"
-    echo "🔄 Cambiando a rama main..."
+    echo "⚠️  Debes estar en 'main'"
+    echo "🔄 Cambiando a 'main'..."
     git checkout main
     git pull origin main
 fi
 
-# Verificar que no hay cambios sin commit
+# Verificar cambios sin commit
 if [ -n "$(git status --porcelain)" ]; then
-    echo "❌ Hay cambios sin commit. Por favor, commitea todos los cambios antes de desplegar."
+    echo "❌ Hay cambios sin commit"
     exit 1
 fi
 
-# Ejecutar tests y validaciones
-echo "🧪 Ejecutando tests..."
+# Tests y validaciones
+echo "🧪 Ejecutando lint y type-check..."
 npm run lint
 npm run type-check
 
-# Generar cliente de Prisma
-echo "🗄️  Generando cliente de Prisma..."
+# Prisma
+echo "🗄️  Prisma generate..."
 npx prisma generate
 
-# Build del proyecto
+# Build
 echo "🏗️  Construyendo proyecto..."
 npm run build
 
-# Desplegar según el entorno
+# Despliegue
 if [ "$ENV" = "staging" ]; then
     echo "🚀 Desplegando a STAGING..."
     vercel --target preview --confirm
-    
-    echo "🗄️  Aplicando migraciones de base de datos (staging)..."
+
+    echo "📦 DB push..."
     npx prisma db push
-    
-    echo "✅ Despliegue a STAGING completado!"
-    echo "🌐 URL: https://jordi-portfolio-staging.vercel.app"
-    
+
+    echo "✅ STAGING desplegado!"
+    echo "🌐 https://jordi-portfolio-staging.vercel.app"
+
 elif [ "$ENV" = "production" ]; then
     echo "🚀 Desplegando a PRODUCTION..."
     vercel --prod --confirm
-    
-    echo "🗄️  Aplicando migraciones de base de datos (production)..."
+
+    echo "📦 DB push..."
     npx prisma db push
-    
-    echo "✅ Despliegue a PRODUCTION completado!"
-    echo "🌐 URL: https://jordi-portfolio.vercel.app"
-    
+
+    echo "✅ PRODUCCIÓN desplegada!"
+    echo "🌐 https://jordi-portfolio.vercel.app"
+
 else
-    echo "❌ Entorno no válido. Usa 'staging' o 'production'"
+    echo "❌ Entorno inválido. Usa 'staging' o 'production'"
     exit 1
 fi
 
-echo "🎉 Despliegue completado exitosamente!"
-
-# Mostrar información útil
+# Resumen final
 echo ""
-echo "📋 Información del despliegue:"
-echo "   - Entorno: $ENV"
-echo "   - Rama: $BRANCH"
-echo "   - Commit: $(git rev-parse --short HEAD)"
-echo "   - Fecha: $(date)"
+echo "🎉 Despliegue completado"
+echo "📋 Entorno: $ENV"
+echo "📦 Rama: $BRANCH"
+echo "🔢 Commit: $(git rev-parse --short HEAD)"
+echo "📅 Fecha: $(date)"
+
+# Ayuda post-despliegue
 echo ""
 echo "🔧 Comandos útiles:"
-echo "   - Ver logs: vercel logs"
-echo "   - Abrir dashboard: vercel"
+echo "   - Logs: vercel logs"
+echo "   - Dashboard: vercel"
 echo "   - Rollback: vercel rollback"

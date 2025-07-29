@@ -1,17 +1,20 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 
+// Actualizar una skill por ID
 export async function PUT(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
+        // Obtener datos del body
         const body = await request.json()
         const { name, category, level, featured } = body
-        
-        // Await params para obtener el id
+
+        // Obtener ID desde los params
         const { id } = await params
 
+        // Actualizar en la BD
         const skill = await prisma.skill.update({
             where: { id },
             data: {
@@ -32,14 +35,16 @@ export async function PUT(
     }
 }
 
+// Eliminar una skill por ID
 export async function DELETE(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        // Await params para obtener el id
+        // Obtener ID desde los params
         const { id } = await params
-        
+
+        // Eliminar en la BD
         await prisma.skill.delete({
             where: { id }
         })

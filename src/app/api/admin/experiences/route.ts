@@ -3,11 +3,10 @@ import { prisma } from '@/lib/db'
 import { experienceSchema, handleValidationError } from '@/lib/validations'
 import { Prisma } from '@prisma/client'
 
-// GET - Obtener todas las experiencias con paginación
+// Controlador de experiencias
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url)
-
         const page = parseInt(searchParams.get('page') || '1')
         const limit = parseInt(searchParams.get('limit') || '10')
         const current = searchParams.get('current')
@@ -65,12 +64,9 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// POST - Crear nueva experiencia
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
-
-        // Validar datos de entrada
         const validationResult = experienceSchema.safeParse(body)
 
         if (!validationResult.success) {
@@ -80,26 +76,16 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        const {
-            company,
-            position,
-            description,
-            startDate,
-            endDate,
-            current
-        } = validationResult.data
+        const { company, position, description, startDate, endDate, current } = validationResult.data
 
-        // Si se marca como actual, asegurar que no hay fecha de fin
-        // y que no haya otra experiencia marcada como actual
         if (current) {
-            // Desmarcar otras experiencias como actuales
+            // Solo puede haber una experiencia actual
             await prisma.experience.updateMany({
                 where: { current: true },
                 data: { current: false }
             })
         }
 
-        // Crear la experiencia
         const experience = await prisma.experience.create({
             data: {
                 company,

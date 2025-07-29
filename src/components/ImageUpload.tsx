@@ -10,40 +10,44 @@ interface ImageUploadProps {
     className?: string
 }
 
-export default function ImageUpload({ onImageUploaded, currentImage, className = '' }: ImageUploadProps) {
+export default function ImageUpload({
+    onImageUploaded,
+    currentImage,
+    className = ''
+}: ImageUploadProps) {
+    // Estados del componente
     const [isUploading, setIsUploading] = useState(false)
     const [uploadProgress, setUploadProgress] = useState(0)
     const [error, setError] = useState<string | null>(null)
     const [preview, setPreview] = useState<string | null>(currentImage || null)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
+    // Manejar selección de archivo
     const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0]
         if (!file) return
 
-        // Validaciones del lado del cliente
-        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
-        if (!validTypes.includes(file.type)) {
-            setError('Tipo de archivo no válido. Solo se permiten JPG, PNG y WebP')
+        // Validar tipo y tamaño
+        if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
+            setError('Solo se permiten imágenes JPG, PNG o WebP')
             return
         }
 
         if (file.size > 5 * 1024 * 1024) {
-            setError('El archivo es muy grande. Máximo 5MB')
+            setError('El tamaño máximo permitido es 5MB')
             return
         }
 
-        // Mostrar preview
+        // Mostrar vista previa
         const reader = new FileReader()
-        reader.onload = (e) => {
-            setPreview(e.target?.result as string)
-        }
+        reader.onload = (e) => setPreview(e.target?.result as string)
         reader.readAsDataURL(file)
 
-        // Subir archivo
+        // Iniciar subida
         await uploadFile(file)
     }
 
+    // Subir archivo al servidor
     const uploadFile = async (file: File) => {
         setIsUploading(true)
         setError(null)
@@ -53,88 +57,68 @@ export default function ImageUpload({ onImageUploaded, currentImage, className =
             const formData = new FormData()
             formData.append('file', file)
 
-            // Obtener el token del localStorage
-            const token = localStorage.getItem('auth_token')
-
-            // Simular progreso
+            // Simular progreso (para UI)
             const progressInterval = setInterval(() => {
-                setUploadProgress(prev => {
-                    if (prev >= 90) {
-                        clearInterval(progressInterval)
-                        return 90
-                    }
-                    return prev + 10
-                })
+                setUploadProgress(prev => Math.min(prev + 10, 90))
             }, 200)
 
+            // Realizar petición
+            const token = localStorage.getItem('auth_token')
             const response = await fetch('/api/upload', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`
                 },
-                body: formData,
+                body: formData
             })
 
             clearInterval(progressInterval)
 
             if (!response.ok) {
                 const errorData = await response.json()
-                throw new Error(errorData.error || 'Error al subir imagen')
+                throw new Error(errorData.error || 'Error al subir la imagen')
             }
 
             const result = await response.json()
             setUploadProgress(100)
-
             onImageUploaded(result.data.url)
 
-            setTimeout(() => {
-                setUploadProgress(0)
-            }, 1000)
+            setTimeout(() => setUploadProgress(0), 1000)
 
-        } catch (error: unknown) {
-            setError(error instanceof Error ? error.message : 'Error al subir imagen')
+        } catch (error) {
+            setError(error instanceof Error ? error.message : 'Error desconocido')
             setPreview(currentImage || null)
         } finally {
             setIsUploading(false)
         }
     }
 
+    // Eliminar imagen seleccionada
     const handleRemoveImage = () => {
         setPreview(null)
         onImageUploaded('')
-        if (fileInputRef.current) {
-            fileInputRef.current.value = ''
-        }
+        if (fileInputRef.current) fileInputRef.current.value = ''
     }
 
-    const handleDrop = (event: React.DragEvent) => {
-        event.preventDefault()
-        const file = event.dataTransfer.files[0]
-        if (file) {
-            // Simular selección de archivo
-            const input = fileInputRef.current
-            if (input) {
-                const dataTransfer = new DataTransfer()
-                dataTransfer.items.add(file)
-                input.files = dataTransfer.files
-                handleFileSelect({ target: input } as React.ChangeEvent<HTMLInputElement>)
-            }
+    // Manejar drag and drop
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault()
+        const file = e.dataTransfer.files[0]
+        if (file && fileInputRef.current) {
+            const dataTransfer = new DataTransfer()
+            dataTransfer.items.add(file)
+            fileInputRef.current.files = dataTransfer.files
+            handleFileSelect({ target: fileInputRef.current } as React.ChangeEvent<HTMLInputElement>)
         }
-    }
-
-    const handleDragOver = (event: React.DragEvent) => {
-        event.preventDefault()
     }
 
     return (
         <div className={`space-y-4 ${className}`}>
-            {/* Área de upload */}
+            {/* Área de subida */}
             <div
                 onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${isUploading
-                    ? 'border-blue-300 bg-blue-50'
-                    : 'border-gray-300 hover:border-gray-400'
+                onDragOver={e => e.preventDefault()}
+                className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${isUploading ? 'border-blue-300 bg-blue-50' : 'border-gray-300 hover:border-gray-400'
                     }`}
             >
                 <input
@@ -153,7 +137,7 @@ export default function ImageUpload({ onImageUploaded, currentImage, className =
                             <p className="text-sm text-gray-600">Subiendo imagen...</p>
                             <div className="w-full bg-gray-200 rounded-full h-2">
                                 <div
-                                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                                    className="bg-blue-600 h-2 rounded-full transition-all"
                                     style={{ width: `${uploadProgress}%` }}
                                 />
                             </div>
@@ -166,49 +150,42 @@ export default function ImageUpload({ onImageUploaded, currentImage, className =
                             <Image
                                 src={preview}
                                 alt="Preview"
+                                width={192}
+                                height={192}
                                 className="max-w-full max-h-48 rounded-lg shadow-sm"
                             />
                             <button
                                 onClick={handleRemoveImage}
-                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                             >
                                 <X className="w-4 h-4" />
                             </button>
                         </div>
-                        <p className="text-sm text-gray-600">
-                            Haz clic para cambiar la imagen
-                        </p>
+                        <p className="text-sm text-gray-600">Haz clic para cambiar</p>
                     </div>
                 ) : (
                     <div className="space-y-3">
                         <Upload className="w-8 h-8 text-gray-400 mx-auto" />
                         <div>
-                            <p className="text-sm font-medium text-gray-900">
-                                Haz clic para subir una imagen
-                            </p>
-                            <p className="text-xs text-gray-500">
-                                o arrastra y suelta aquí
-                            </p>
+                            <p className="text-sm font-medium text-gray-900">Sube una imagen</p>
+                            <p className="text-xs text-gray-500">o arrástrala aquí</p>
                         </div>
-                        <p className="text-xs text-gray-400">
-                            PNG, JPG, WebP hasta 5MB
-                        </p>
+                        <p className="text-xs text-gray-400">Formatos: PNG, JPG, WebP (max 5MB)</p>
                     </div>
                 )}
             </div>
 
-            {/* Error */}
+            {/* Mensajes de estado */}
             {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                     <p className="text-sm text-red-700">{error}</p>
                 </div>
             )}
 
-            {/* Estado de éxito */}
             {uploadProgress === 100 && !error && (
                 <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center space-x-2">
                     <Check className="w-4 h-4 text-green-600" />
-                    <p className="text-sm text-green-700">Imagen subida exitosamente</p>
+                    <p className="text-sm text-green-700">Imagen subida correctamente</p>
                 </div>
             )}
         </div>
