@@ -55,7 +55,7 @@ export default function LoginForm({ onToggleMode, isRegisterMode }: LoginFormPro
                 await login(formData.email, formData.password)
             }
         } catch (error) {
-            // El error ya se maneja en el contexto
+            console.error('Error during authentication:', error)
         }
     }
 

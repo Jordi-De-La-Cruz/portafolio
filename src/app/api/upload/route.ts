@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { writeFile, mkdir } from 'fs/promises'
+import { writeFile, mkdir, stat, readdir } from 'fs/promises'
 import { existsSync } from 'fs'
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
@@ -107,25 +107,27 @@ export async function GET(request: NextRequest) {
 
         await ensureUploadDir()
 
-        const fs = require('fs').promises
-        const files = await fs.readdir(UPLOAD_DIR)
+        const files = await readdir(UPLOAD_DIR)
 
         // Filtrar solo imágenes y obtener información
-        const imageFiles = files
-            .filter((file: string) => {
-                const ext = path.extname(file).toLowerCase()
-                return ['.jpg', '.jpeg', '.png', '.webp'].includes(ext)
-            })
-            .map((file: string) => {
-                const stat = require('fs').statSync(path.join(UPLOAD_DIR, file))
-                return {
-                    fileName: file,
-                    url: `/uploads/${file}`,
-                    size: stat.size,
-                    uploadedAt: stat.birthtime
-                }
-            })
-            .sort((a: any, b: any) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
+        const imageFiles = await Promise.all(
+            files
+                .filter((file: string) => {
+                    const ext = path.extname(file).toLowerCase()
+                    return ['.jpg', '.jpeg', '.png', '.webp'].includes(ext)
+                })
+                .map(async (file: string) => {
+                    const fileStat = await stat(path.join(UPLOAD_DIR, file))
+                    return {
+                        fileName: file,
+                        url: `/uploads/${file}`,
+                        size: fileStat.size,
+                        uploadedAt: fileStat.birthtime
+                    }
+                })
+        ).then(files => 
+            files.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime())
+        )
 
         // Paginación
         const startIndex = (page - 1) * limit

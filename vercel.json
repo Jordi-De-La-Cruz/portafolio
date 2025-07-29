@@ -1,0 +1,40 @@
+{
+    "framework": "nextjs",
+    "buildCommand": "npm run build",
+    "devCommand": "npm run dev",
+    "installCommand": "npm install",
+    "regions": [
+        "cle1"
+    ],
+    "env": {
+        "DATABASE_URL": "postgresql://postgres:a8RsiMpEdHwhytOd@db.oitwvsnjqmvigxntlozh.supabase.co:5432/postgres",
+        "NEXTAUTH_SECRET": "F3RbQFHb9Qp24q9AhYLzdEeKaWHwyY3tcOd3xoqGHqU=",
+        "NEXTAUTH_URL": "https://portfolio-staging.vercel.app"
+    },
+    "build": {
+        "env": {
+            "DATABASE_URL": "postgresql://postgres:a8RsiMpEdHwhytOd@db.oitwvsnjqmvigxntlozh.supabase.co:5432/postgres",
+            "NEXTAUTH_SECRET": "F3RbQFHb9Qp24q9AhYLzdEeKaWHwyY3tcOd3xoqGHqU="
+        }
+    },
+    "functions": {
+        "app/api/**": {
+            "maxDuration": 30
+        }
+    },
+    "headers": [
+        {
+            "source": "/(.*)",
+            "headers": [
+                {
+                    "key": "X-Frame-Options",
+                    "value": "DENY"
+                },
+                {
+                    "key": "X-Content-Type-Options",
+                    "value": "nosniff"
+                }
+            ]
+        }
+    ]
+}

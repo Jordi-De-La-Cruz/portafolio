@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { experienceSchema, handleValidationError } from '@/lib/validations'
+import { Prisma } from '@prisma/client'
 
 // GET - Obtener todas las experiencias con paginación
 export async function GET(request: NextRequest) {
@@ -14,8 +15,7 @@ export async function GET(request: NextRequest) {
 
         const offset = (page - 1) * limit
 
-        // Construir filtros
-        const where: any = {}
+        const where: Prisma.ExperienceWhereInput = {}
 
         if (current !== null) {
             where.current = current === 'true'

@@ -1,15 +1,16 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { apiClient } from '@/lib/api-client'
+import { apiClient, type DashboardStatsResponse, type DashboardStats } from '@/lib/api-client'
 import { BarChart3, TrendingUp, Users, Briefcase, Star, Activity } from 'lucide-react'
+import type { Project } from '@prisma/client'
 
 interface DashboardStatsProps {
     className?: string
 }
 
 export default function DashboardStats({ className = '' }: DashboardStatsProps) {
-    const [stats, setStats] = useState<any>(null)
+    const [stats, setStats] = useState<DashboardStats | null>(null)
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [hasToken, setHasToken] = useState<boolean>(false)
@@ -49,16 +50,17 @@ export default function DashboardStats({ className = '' }: DashboardStatsProps) 
             setError(null)
             console.log('📊 Cargando estadísticas del dashboard...')
 
-            const response = await apiClient.getDashboardStats()
+            const response: DashboardStatsResponse = await apiClient.getDashboardStats()
             setStats(response.data)
             console.log('✅ Estadísticas cargadas exitosamente')
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('❌ Error fetching stats:', error)
-            setError(error.message || 'Error al cargar estadísticas')
+            const errorMessage = error instanceof Error ? error.message : 'Error al cargar estadísticas'
+            setError(errorMessage)
 
             // Si es error de autenticación, marcar que no hay token
-            if (error.message?.includes('Token inválido') || error.message?.includes('401')) {
+            if (errorMessage.includes('Token inválido') || errorMessage.includes('401')) {
                 setHasToken(false)
             }
         } finally {
@@ -229,7 +231,7 @@ export default function DashboardStats({ className = '' }: DashboardStatsProps) 
 
                     <div className="space-y-3">
                         {recentActivity.recentProjects.length > 0 ? (
-                            recentActivity.recentProjects.map((project: any) => (
+                            recentActivity.recentProjects.map((project: Project) => (
                                 <div key={project.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                                     <div>
                                         <div className="font-medium text-sm">{project.title}</div>
@@ -258,7 +260,7 @@ export default function DashboardStats({ className = '' }: DashboardStatsProps) 
                     </h3>
 
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                        {skillsDistribution.map((item: any, index: number) => (
+                        {skillsDistribution.map((item, index: number) => (
                             <div key={index} className="text-center p-3 bg-gray-50 rounded-lg">
                                 <div className="text-lg font-bold text-gray-900">{item.count}</div>
                                 <div className="text-xs text-gray-600 capitalize">{item.category}</div>

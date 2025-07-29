@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Image as ImageIcon, Upload, Grid } from 'lucide-react'
+import { Upload, Grid, LucideIcon } from 'lucide-react'
 import ImageUpload from './ImageUpload'
 import ImageGallery from './ImageGallery'
+import Image from 'next/image'
 
 interface ImageSelectorProps {
     value: string
@@ -23,7 +24,7 @@ export default function ImageSelector({
     const [activeTab, setActiveTab] = useState<'upload' | 'gallery'>('upload')
     const [isGalleryOpen, setIsGalleryOpen] = useState(false)
 
-    const tabs: Array<{ id: 'upload' | 'gallery', label: string, icon: any }> = [
+    const tabs: Array<{ id: 'upload' | 'gallery', label: string, icon: LucideIcon }> = [
         { id: 'upload', label: 'Subir Nueva', icon: Upload },
         { id: 'gallery', label: 'Galería', icon: Grid }
     ]
@@ -76,7 +77,7 @@ export default function ImageSelector({
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                     <p className="text-sm font-medium text-gray-700 mb-2">Imagen actual:</p>
                     <div className="flex items-center space-x-3">
-                        <img
+                        <Image
                             src={value}
                             alt="Imagen seleccionada"
                             className="w-16 h-16 object-cover rounded-lg border"

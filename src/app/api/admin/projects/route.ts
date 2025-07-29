@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { projectSchema, handleValidationError } from '@/lib/validations'
-import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 
 // GET - Obtener todos los proyectos con paginación y filtros
 export async function GET(request: NextRequest) {
@@ -17,8 +17,7 @@ export async function GET(request: NextRequest) {
         // Calcular offset para paginación
         const offset = (page - 1) * limit
 
-        // Construir filtros
-        const where: any = {}
+        const where: Prisma.ProjectWhereInput = {}
 
         if (featured !== null) {
             where.featured = featured === 'true'

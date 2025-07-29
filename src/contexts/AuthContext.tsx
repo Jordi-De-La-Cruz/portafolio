@@ -94,9 +94,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(response.data.user)
             console.log('👤 Usuario establecido en contexto')
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('❌ Error en login:', error)
-            setError(error.message || 'Error al iniciar sesión')
+            setError(error instanceof Error ? error.message : 'Error al iniciar sesión')
             throw error
         } finally {
             setIsLoading(false)
@@ -126,9 +126,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(response.data.user)
             console.log('👤 Usuario establecido en contexto')
 
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('❌ Error en registro:', error)
-            setError(error.message || 'Error al registrarse')
+            setError(error instanceof Error ? error.message : 'Error al registrarse')
             throw error
         } finally {
             setIsLoading(false)

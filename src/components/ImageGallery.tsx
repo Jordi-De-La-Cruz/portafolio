@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Search, Grid, Check, Loader2, Image as ImageIcon } from 'lucide-react'
+import { useState, useEffect, useCallback } from 'react'
+import { Search, Check, Loader2, Image as ImageIcon } from 'lucide-react'
+import Image from 'next/image'
 
 interface ImageGalleryProps {
     onImageSelect: (imageUrl: string) => void
@@ -21,26 +22,17 @@ export default function ImageGallery({ onImageSelect, selectedImage, isOpen, onC
     const [images, setImages] = useState<ImageFile[]>([])
     const [isLoading, setIsLoading] = useState(false)
     const [searchTerm, setSearchTerm] = useState('')
-    const [currentPage, setCurrentPage] = useState(1)
+    const [currentPage] = useState(1) // Removed setCurrentPage since it wasn't used
 
-    useEffect(() => {
-        if (isOpen) {
-            fetchImages()
-        }
-    }, [isOpen, currentPage])
-
-    const fetchImages = async () => {
+    const fetchImages = useCallback(async () => {
         setIsLoading(true)
         try {
-            // Obtener el token del localStorage
             const token = localStorage.getItem('auth_token')
-
             const response = await fetch(`/api/upload?page=${currentPage}&limit=20`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             })
-
             if (response.ok) {
                 const result = await response.json()
                 setImages(result.data)
@@ -50,7 +42,13 @@ export default function ImageGallery({ onImageSelect, selectedImage, isOpen, onC
         } finally {
             setIsLoading(false)
         }
-    }
+    }, [currentPage]) // Added currentPage as dependency
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchImages()
+        }
+    }, [isOpen, fetchImages]) // Added fetchImages as dependency
 
     const filteredImages = images.filter(image =>
         image.fileName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -120,10 +118,12 @@ export default function ImageGallery({ onImageSelect, selectedImage, isOpen, onC
                                     onClick={() => onImageSelect(image.url)}
                                 >
                                     <div className="aspect-square relative">
-                                        <img
+                                        <Image
                                             src={image.url}
                                             alt={image.fileName}
-                                            className="w-full h-full object-cover"
+                                            fill
+                                            className="object-cover"
+                                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                                         />
 
                                         {/* Overlay */}

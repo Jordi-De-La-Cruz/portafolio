@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Upload, X, Image as ImageIcon, Loader2, Check } from 'lucide-react'
+import { Upload, X, Loader2, Check } from 'lucide-react'
+import Image from 'next/image'
 
 interface ImageUploadProps {
     onImageUploaded: (imageUrl: string) => void
@@ -90,8 +91,8 @@ export default function ImageUpload({ onImageUploaded, currentImage, className =
                 setUploadProgress(0)
             }, 1000)
 
-        } catch (error: any) {
-            setError(error.message || 'Error al subir imagen')
+        } catch (error: unknown) {
+            setError(error instanceof Error ? error.message : 'Error al subir imagen')
             setPreview(currentImage || null)
         } finally {
             setIsUploading(false)
@@ -162,7 +163,7 @@ export default function ImageUpload({ onImageUploaded, currentImage, className =
                 ) : preview ? (
                     <div className="space-y-3">
                         <div className="relative inline-block">
-                            <img
+                            <Image
                                 src={preview}
                                 alt="Preview"
                                 className="max-w-full max-h-48 rounded-lg shadow-sm"

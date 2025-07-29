@@ -1,4 +1,107 @@
 import { ProjectInput, SkillInput, ExperienceInput, PersonalInfoInput } from './validations'
+import type {
+  User,
+  Project,
+  Skill,
+  Experience,
+  PersonalInfo
+} from '@prisma/client'
+
+export interface PaginationMeta {
+  page: number
+  limit: number
+  totalCount: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPrevPage: boolean
+}
+
+export interface DashboardOverview {
+  totalProjects: number
+  featuredProjects: number
+  totalSkills: number
+  featuredSkills: number
+  totalExperiences: number
+  projectsCompletionRate: number
+}
+
+export interface CurrentJob extends Experience {
+  durationMonths: number
+}
+
+export interface SkillDistribution {
+  category: string
+  count: number
+}
+
+export interface RecentActivity {
+  recentProjects: Project[]
+}
+
+export interface DashboardStats {
+  overview: DashboardOverview
+  currentJob: CurrentJob | null
+  recentActivity: RecentActivity
+  skillsDistribution: SkillDistribution[]
+}
+
+// Tipos de respuesta de la API
+export interface AuthResponse {
+  data: {
+    user: User
+    token: string
+  }
+  message: string
+}
+
+export interface ProjectResponse {
+  data: Project
+  message?: string
+}
+
+export interface ProjectsResponse {
+  data: Project[]
+  meta: PaginationMeta
+}
+
+export interface SkillResponse {
+  data: Skill
+  message?: string
+}
+
+export interface SkillsResponse {
+  data: Skill[]
+  meta: PaginationMeta
+}
+
+export interface ExperienceResponse {
+  data: Experience
+  message?: string
+}
+
+export interface ExperiencesResponse {
+  data: Experience[]
+  meta: PaginationMeta
+}
+
+export interface PersonalInfoResponse {
+  data: PersonalInfo
+  message: string
+}
+
+export interface DashboardStatsResponse {
+  data: DashboardStats
+  message: string
+}
+
+export interface MessageResponse {
+  message: string
+}
+
+export interface UserResponse {
+  data: { user: User }
+  message: string
+}
 
 // Configuración base del cliente API
 class ApiClient {
@@ -113,12 +216,9 @@ class ApiClient {
 
   // ===== MÉTODOS DE AUTENTICACIÓN =====
 
-  async login(email: string, password: string) {
+  async login(email: string, password: string): Promise<AuthResponse> {
     console.log('🔐 ApiClient.login:', email)
-    const response = await this.request<{
-      data: { user: any; token: string }
-      message: string
-    }>('/auth/login', {
+    const response = await this.request<AuthResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     })
@@ -128,12 +228,9 @@ class ApiClient {
     return response
   }
 
-  async register(name: string, email: string, password: string) {
+  async register(name: string, email: string, password: string): Promise<AuthResponse> {
     console.log('📝 ApiClient.register:', { name, email })
-    const response = await this.request<{
-      data: { user: any; token: string }
-      message: string
-    }>('/auth/register', {
+    const response = await this.request<AuthResponse>('/auth/register', {
       method: 'POST',
       body: JSON.stringify({ name, email, password }),
     })
@@ -143,20 +240,17 @@ class ApiClient {
     return response
   }
 
-  async verifyToken() {
+  async verifyToken(): Promise<UserResponse> {
     console.log('🔍 ApiClient.verifyToken')
-    return this.request<{
-      data: { user: any }
-      message: string
-    }>('/auth/verify')
+    return this.request<UserResponse>('/auth/verify')
   }
 
-  async logout() {
+  async logout(): Promise<void> {
     console.log('🚪 ApiClient.logout')
     try {
-      await this.request('/auth/logout', { method: 'POST' })
-    } catch (error) {
-      console.log('Error en logout del servidor, pero limpiando token local')
+      await this.request<MessageResponse>('/auth/logout', { method: 'POST' })
+    } catch (error: unknown) {
+      console.log('Error en logout del servidor, pero limpiando token local:', error)
     } finally {
       this.clearToken()
     }
@@ -169,7 +263,7 @@ class ApiClient {
     limit?: number
     featured?: boolean
     search?: string
-  }) {
+  }): Promise<ProjectsResponse> {
     const searchParams = new URLSearchParams()
 
     if (params?.page) searchParams.append('page', params.page.toString())
@@ -178,45 +272,29 @@ class ApiClient {
     if (params?.search) searchParams.append('search', params.search)
 
     const query = searchParams.toString()
-    return this.request<{
-      data: any[]
-      meta: {
-        page: number
-        limit: number
-        totalCount: number
-        totalPages: number
-        hasNextPage: boolean
-        hasPrevPage: boolean
-      }
-    }>(`/admin/projects${query ? `?${query}` : ''}`)
+    return this.request<ProjectsResponse>(`/admin/projects${query ? `?${query}` : ''}`)
   }
 
-  async getProject(id: string) {
-    return this.request<{ data: any }>(`/admin/projects/${id}`)
+  async getProject(id: string): Promise<ProjectResponse> {
+    return this.request<ProjectResponse>(`/admin/projects/${id}`)
   }
 
-  async createProject(data: ProjectInput) {
-    return this.request<{
-      data: any
-      message: string
-    }>('/admin/projects', {
+  async createProject(data: ProjectInput): Promise<ProjectResponse> {
+    return this.request<ProjectResponse>('/admin/projects', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
-  async updateProject(id: string, data: ProjectInput) {
-    return this.request<{
-      data: any
-      message: string
-    }>(`/admin/projects/${id}`, {
+  async updateProject(id: string, data: ProjectInput): Promise<ProjectResponse> {
+    return this.request<ProjectResponse>(`/admin/projects/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     })
   }
 
-  async deleteProject(id: string) {
-    return this.request<{ message: string }>(`/admin/projects/${id}`, {
+  async deleteProject(id: string): Promise<MessageResponse> {
+    return this.request<MessageResponse>(`/admin/projects/${id}`, {
       method: 'DELETE',
     })
   }
@@ -228,7 +306,7 @@ class ApiClient {
     limit?: number
     featured?: boolean
     search?: string
-  }) {
+  }): Promise<SkillsResponse> {
     const searchParams = new URLSearchParams()
 
     if (params?.page) searchParams.append('page', params.page.toString())
@@ -237,34 +315,25 @@ class ApiClient {
     if (params?.search) searchParams.append('search', params.search)
 
     const query = searchParams.toString()
-    return this.request<{
-      data: any[]
-      meta: any
-    }>(`/admin/skills${query ? `?${query}` : ''}`)
+    return this.request<SkillsResponse>(`/admin/skills${query ? `?${query}` : ''}`)
   }
 
-  async createSkill(data: SkillInput) {
-    return this.request<{
-      data: any
-      message: string
-    }>('/admin/skills', {
+  async createSkill(data: SkillInput): Promise<SkillResponse> {
+    return this.request<SkillResponse>('/admin/skills', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
-  async updateSkill(id: string, data: SkillInput) {
-    return this.request<{
-      data: any
-      message: string
-    }>(`/admin/skills/${id}`, {
+  async updateSkill(id: string, data: SkillInput): Promise<SkillResponse> {
+    return this.request<SkillResponse>(`/admin/skills/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     })
   }
 
-  async deleteSkill(id: string) {
-    return this.request<{ message: string }>(`/admin/skills/${id}`, {
+  async deleteSkill(id: string): Promise<MessageResponse> {
+    return this.request<MessageResponse>(`/admin/skills/${id}`, {
       method: 'DELETE',
     })
   }
@@ -276,7 +345,7 @@ class ApiClient {
     limit?: number
     current?: boolean
     search?: string
-  }) {
+  }): Promise<ExperiencesResponse> {
     const searchParams = new URLSearchParams()
 
     if (params?.page) searchParams.append('page', params.page.toString())
@@ -285,45 +354,33 @@ class ApiClient {
     if (params?.search) searchParams.append('search', params.search)
 
     const query = searchParams.toString()
-    return this.request<{
-      data: any[]
-      meta: any
-    }>(`/admin/experiences${query ? `?${query}` : ''}`)
+    return this.request<ExperiencesResponse>(`/admin/experiences${query ? `?${query}` : ''}`)
   }
 
-  async createExperience(data: ExperienceInput) {
-    return this.request<{
-      data: any
-      message: string
-    }>('/admin/experiences', {
+  async createExperience(data: ExperienceInput): Promise<ExperienceResponse> {
+    return this.request<ExperienceResponse>('/admin/experiences', {
       method: 'POST',
       body: JSON.stringify(data),
     })
   }
 
-  async updateExperience(id: string, data: ExperienceInput) {
-    return this.request<{
-      data: any
-      message: string
-    }>(`/admin/experiences/${id}`, {
+  async updateExperience(id: string, data: ExperienceInput): Promise<ExperienceResponse> {
+    return this.request<ExperienceResponse>(`/admin/experiences/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     })
   }
 
-  async deleteExperience(id: string) {
-    return this.request<{ message: string }>(`/admin/experiences/${id}`, {
+  async deleteExperience(id: string): Promise<MessageResponse> {
+    return this.request<MessageResponse>(`/admin/experiences/${id}`, {
       method: 'DELETE',
     })
   }
 
   // ===== MÉTODOS PARA INFORMACIÓN PERSONAL =====
 
-  async updatePersonalInfo(data: PersonalInfoInput) {
-    return this.request<{
-      data: any
-      message: string
-    }>('/admin/personal', {
+  async updatePersonalInfo(data: PersonalInfoInput): Promise<PersonalInfoResponse> {
+    return this.request<PersonalInfoResponse>('/admin/personal', {
       method: 'PUT',
       body: JSON.stringify(data),
     })
@@ -331,32 +388,8 @@ class ApiClient {
 
   // ===== MÉTODOS PARA ESTADÍSTICAS =====
 
-  async getDashboardStats() {
-    return this.request<{
-      data: {
-        overview: {
-          totalProjects: number
-          featuredProjects: number
-          totalSkills: number
-          featuredSkills: number
-          totalExperiences: number
-          projectsCompletionRate: number
-        }
-        currentJob: any
-        recentActivity: {
-          recentProjects: any[]
-        }
-        skillsDistribution: Array<{
-          category: string
-          count: number
-        }>
-        summary: {
-          lastUpdated: string
-          hasPersonalInfo: boolean
-        }
-      }
-      message: string
-    }>('/admin/stats')
+  async getDashboardStats(): Promise<DashboardStatsResponse> {
+    return this.request<DashboardStatsResponse>('/admin/stats')
   }
 }
 

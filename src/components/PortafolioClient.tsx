@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Github, Linkedin, Mail, Phone, MapPin, Calendar, ExternalLink, Star, Quote, Award, Code, Briefcase, GraduationCap } from 'lucide-react'
+import Image from 'next/image'
 import type { PersonalInfo, Project, Skill, Experience } from '@prisma/client'
 import MobileNav from './MobileNav'
 
@@ -228,10 +229,12 @@ export default function PortafolioClient({ personalInfo, featuredProjects, featu
               <div key={`featured-project-${project.id}-${index}`} className="group bg-white rounded-xl shadow-lg overflow-hidden">
                 {project.imageUrl && (
                   <div className="aspect-video relative overflow-hidden">
-                    <img
+                    <Image
                       src={project.imageUrl}
                       alt={project.title}
+                      fill
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </div>
@@ -252,6 +255,8 @@ export default function PortafolioClient({ personalInfo, featuredProjects, featu
                         href={project.demoUrl}
                         target="_blank"
                         rel="noopener noreferrer"
+                        title="Ver demostración del proyecto"
+                        aria-label="Ver demostración del proyecto"
                         className="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium transition-colors"
                       >
                         <ExternalLink className="w-4 h-4 mr-2" />
@@ -308,16 +313,14 @@ export default function PortafolioClient({ personalInfo, featuredProjects, featu
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-gray-600">Nivel</span>
                     <span className="font-medium text-gray-900">{skill.level}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-500"
-                      style={{
-                        width: skill.level === 'Principiante' ? '25%' :
-                          skill.level === 'Intermedio' ? '50%' :
-                            skill.level === 'Avanzado' ? '75%' : '90%'
-                      }}
-                    />
+                    <div className="skill-progress-bar">
+                      <div
+                        className={`skill-progress-fill ${skill.level === 'Principiante' ? 'skill-progress-fill-beginner' :
+                            skill.level === 'Intermedio' ? 'skill-progress-fill-intermediate' :
+                              skill.level === 'Avanzado' ? 'skill-progress-fill-advanced' : 'skill-progress-fill-expert'
+                          }`}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -394,7 +397,7 @@ export default function PortafolioClient({ personalInfo, featuredProjects, featu
                 </div>
               </div>
               <p className="text-gray-700 mb-6 leading-relaxed">
-                "Excelente trabajo en el desarrollo de nuestra plataforma. Muy profesional y cumplió con todos los tiempos establecidos."
+                &quot;Excelente trabajo en el desarrollo de nuestra plataforma. Muy profesional y cumplió con todos los tiempos establecidos.&quot;
               </p>
               <div className="flex items-center">
                 <div className="w-12 h-12 bg-gray-300 rounded-full mr-4"></div>
@@ -415,7 +418,7 @@ export default function PortafolioClient({ personalInfo, featuredProjects, featu
                 </div>
               </div>
               <p className="text-gray-700 mb-6 leading-relaxed">
-                "Su conocimiento técnico y capacidad para resolver problemas complejos es impresionante. Recomendado 100%."
+                &quot;Su conocimiento técnico y capacidad para resolver problemas complejos es impresionante. Recomendado 100%.&quot;
               </p>
               <div className="flex items-center">
                 <div className="w-12 h-12 bg-gray-300 rounded-full mr-4"></div>
@@ -436,7 +439,7 @@ export default function PortafolioClient({ personalInfo, featuredProjects, featu
                 </div>
               </div>
               <p className="text-gray-700 mb-6 leading-relaxed">
-                "Trabajar con él fue una experiencia fantástica. Entrega código limpio y siempre está disponible para soporte."
+                &quot;Trabajar con él fue una experiencia fantástica. Entrega código limpio y siempre está disponible para soporte.&quot;
               </p>
               <div className="flex items-center">
                 <div className="w-12 h-12 bg-gray-300 rounded-full mr-4"></div>
@@ -503,6 +506,8 @@ export default function PortafolioClient({ personalInfo, featuredProjects, featu
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-12 h-12 bg-gray-900 text-white rounded-lg flex items-center justify-center hover:bg-gray-800 transition-colors"
+                      title="Visitar perfil de GitHub"
+                      aria-label="Visitar perfil de GitHub"
                     >
                       <Github className="w-6 h-6" />
                     </a>
@@ -513,6 +518,8 @@ export default function PortafolioClient({ personalInfo, featuredProjects, featu
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-12 h-12 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 transition-colors"
+                      title="Visitar perfil de LinkedIn"
+                      aria-label="Visitar perfil de LinkedIn"
                     >
                       <Linkedin className="w-6 h-6" />
                     </a>
@@ -607,6 +614,8 @@ export default function PortafolioClient({ personalInfo, featuredProjects, featu
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-gray-400 hover:text-white transition-colors"
+                    title="Visitar mi perfil de GitHub"
+                    aria-label="Visitar mi perfil de GitHub"
                   >
                     <Github className="w-6 h-6" />
                   </a>
@@ -617,6 +626,8 @@ export default function PortafolioClient({ personalInfo, featuredProjects, featu
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-gray-400 hover:text-white transition-colors"
+                    title="Visitar mi perfil de LinkedIn"
+                    aria-label="Visitar mi perfil de LinkedIn"
                   >
                     <Linkedin className="w-6 h-6" />
                   </a>
@@ -624,6 +635,8 @@ export default function PortafolioClient({ personalInfo, featuredProjects, featu
                 <a
                   href={`mailto:${personalInfo?.email}`}
                   className="text-gray-400 hover:text-white transition-colors"
+                  title="Enviar correo electrónico"
+                  aria-label="Enviar correo electrónico"
                 >
                   <Mail className="w-6 h-6" />
                 </a>

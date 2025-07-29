@@ -18,10 +18,10 @@ function getJwtSecret(): Uint8Array {
 // Función para generar JWT token con jose
 export async function generateToken(payload: Omit<AuthPayload, 'iat' | 'exp'>): Promise<string> {
     console.log('🔑 Generando token para:', payload.email)
-    
+
     try {
         const secret = getJwtSecret()
-        
+
         const token = await new SignJWT(payload)
             .setProtectedHeader({ alg: 'HS256' })
             .setIssuedAt()
@@ -46,7 +46,7 @@ export async function verifyToken(token: string): Promise<AuthPayload | null> {
 
         const secret = getJwtSecret()
         const { payload } = await jwtVerify(token, secret) as { payload: AuthPayload }
-        
+
         console.log('✅ Token válido, payload:', payload)
         return payload
     } catch (error) {
@@ -80,9 +80,15 @@ export async function verifyAuth(request: NextRequest): Promise<AuthPayload | nu
     }
 }
 
+// Define el tipo para el contexto
+interface AuthContext {
+    params: { [key: string]: string | string[] };
+    user?: AuthPayload;
+}
+
 // HOC para proteger rutas API
-export function withAuth(handler: Function) {
-    return async (request: NextRequest, context: any) => {
+export function withAuth(handler: (request: NextRequest, context: AuthContext) => Promise<Response>) {
+    return async (request: NextRequest, context: AuthContext) => {
         console.log('🔒 withAuth: Protegiendo ruta...')
         const authPayload = await verifyAuth(request)
 
